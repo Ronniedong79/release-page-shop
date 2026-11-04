@@ -15,7 +15,7 @@ Also in this repo:
 
 ## Run it locally
 
-Requires Node.js 20 or newer.
+Requires Node.js 22 or newer (`better-sqlite3` and `vitest` need it).
 
 ```bash
 npm install
