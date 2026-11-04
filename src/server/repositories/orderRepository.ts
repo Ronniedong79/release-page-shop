@@ -41,6 +41,34 @@ export function insertOrder(db: Db, userId: number, totalCents: number, createdA
   return Number(lastInsertRowid);
 }
 
+export interface OrderItemRow {
+  orderId: number;
+  createdAt: string;
+  totalCents: number;
+  productId: number;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+}
+
+/**
+ * One row per order line for this user, oldest order first.
+ * The WHERE on user_id is what keeps customers out of each other's orders (rule 2).
+ */
+export function listByUser(db: Db, userId: number): OrderItemRow[] {
+  return db
+    .prepare(
+      `SELECT o.id AS orderId, o.created_at AS createdAt, o.total_cents AS totalCents,
+              i.product_id AS productId, p.name, i.quantity, i.unit_price_cents AS unitPriceCents
+         FROM orders o
+         JOIN order_items i ON i.order_id = o.id
+         JOIN products p    ON p.id = i.product_id
+        WHERE o.user_id = ?
+        ORDER BY o.created_at, o.id, i.id`,
+    )
+    .all(userId) as OrderItemRow[];
+}
+
 export function insertItem(
   db: Db,
   orderId: number,

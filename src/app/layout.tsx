@@ -24,6 +24,7 @@ export default async function RootLayout({
               <strong>Release Shop</strong>
             </Link>
             {user?.role === "admin" && <AdminNavLink />}
+            {user?.role === "customer" && <Link href="/orders">My orders</Link>}
           </nav>
           {user ? (
             <span>

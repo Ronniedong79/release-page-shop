@@ -41,9 +41,9 @@ export function placeOrder(userId: number, items: OrderItemInput[]): OrderDto {
   const db = getDb();
 
   const run = db.transaction((): OrderDto => {
-    const lines: OrderLine[] = [];
-
-    for (const { productId, quantity } of items) {
+    // Phase 1 - check every line before writing anything (rule 5).
+    // A bad line fails the order without touching the database.
+    const lines = items.map(({ productId, quantity }): OrderLine => {
       const product = products.findById(db, productId);
       if (!product) {
         throw new AppError(404, "PRODUCT_NOT_FOUND", `Product ${productId} not found.`);
@@ -57,27 +57,32 @@ export function placeOrder(userId: number, items: OrderItemInput[]): OrderDto {
           { productId, limit: MAX_UNITS_PER_CUSTOMER, alreadyBought, requested: quantity },
         );
       }
-      // Conditional UPDATE: can't oversell even if stock changed since we read it.
-      if (!orders.decrementStock(db, productId, quantity)) {
-        throw conflict(
-          "OUT_OF_STOCK",
-          `Only ${product.stock} of "${product.name}" left.`,
-          { productId, available: product.stock, requested: quantity },
-        );
+      if (product.stock < quantity) {
+        throw conflict("OUT_OF_STOCK", `Only ${product.stock} of "${product.name}" left.`, {
+          productId,
+          available: product.stock,
+          requested: quantity,
+        });
       }
-      lines.push({
+      return {
         productId,
         name: product.name,
         quantity,
         unitPriceCents: product.priceCents, // from the database, never from the request
         lineTotalCents: product.priceCents * quantity,
-      });
-    }
+      };
+    });
 
+    // Phase 2 - write. If anything here throws (it shouldn't after phase 1), the
+    // transaction rolls back every earlier write, so there is still no partial order.
     const totalCents = lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
     const createdAt = new Date().toISOString();
     const orderId = orders.insertOrder(db, userId, totalCents, createdAt);
     for (const l of lines) {
+      // Conditional UPDATE as a second guard against overselling.
+      if (!orders.decrementStock(db, l.productId, l.quantity)) {
+        throw conflict("OUT_OF_STOCK", `"${l.name}" just sold out.`, { productId: l.productId });
+      }
       orders.insertItem(db, orderId, l.productId, l.quantity, l.unitPriceCents);
       orders.addPurchasedQuantity(db, userId, l.productId, l.quantity);
     }
@@ -86,4 +91,24 @@ export function placeOrder(userId: number, items: OrderItemInput[]): OrderDto {
   });
 
   return run.immediate();
+}
+
+/** Rule 2: a customer's own orders, oldest first. userId always comes from the session. */
+export function listMyOrders(userId: number): OrderDto[] {
+  const byId = new Map<number, OrderDto>();
+  for (const row of orders.listByUser(getDb(), userId)) {
+    let order = byId.get(row.orderId);
+    if (!order) {
+      order = { id: row.orderId, createdAt: row.createdAt, totalCents: row.totalCents, items: [] };
+      byId.set(row.orderId, order);
+    }
+    order.items.push({
+      productId: row.productId,
+      name: row.name,
+      quantity: row.quantity,
+      unitPriceCents: row.unitPriceCents,
+      lineTotalCents: row.unitPriceCents * row.quantity,
+    });
+  }
+  return [...byId.values()];
 }
