@@ -1,3 +1,4 @@
+import { MAX_UNITS_PER_CUSTOMER } from "../../lib/rules";
 import { getDb } from "../db/connection";
 import { AppError, conflict } from "../errors";
 import * as orders from "../repositories/orderRepository";
@@ -23,8 +24,12 @@ export interface OrderDto {
   items: OrderLine[];
 }
 
-/** Rule 4: max units of one product a customer can buy, in total across all orders. */
-export const MAX_UNITS_PER_CUSTOMER = 2;
+/** How many units of each product this customer has bought so far (productId -> units). */
+export function getPurchasedQuantities(userId: number): Record<number, number> {
+  return Object.fromEntries(
+    orders.listPurchasedQuantities(getDb(), userId).map((r) => [r.productId, r.quantity]),
+  );
+}
 
 /**
  * Place an order for a customer. Everything happens in one transaction, so if any

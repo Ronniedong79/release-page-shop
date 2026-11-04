@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { apiErrorMessage } from "@/lib/apiError";
 import { formatCents } from "@/lib/format";
 import type { ProductDto } from "@/server/services/productService";
 
@@ -15,11 +16,7 @@ async function send(method: string, url: string, body: unknown): Promise<Status>
     body: JSON.stringify(body),
   });
   if (res.ok) return { ok: true, text: "Saved." };
-  const err = (await res.json().catch(() => null))?.error;
-  const details = Array.isArray(err?.details)
-    ? " " + err.details.map((d: { message: string }) => d.message).join(" ")
-    : "";
-  return { ok: false, text: (err?.message ?? `Request failed (${res.status}).`) + details };
+  return { ok: false, text: apiErrorMessage(await res.json().catch(() => null), res.status) };
 }
 
 // The form takes dollars for convenience; the API only ever receives whole cents.

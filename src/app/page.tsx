@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { formatCents } from "@/lib/format";
+import { MAX_UNITS_PER_CUSTOMER } from "@/lib/rules";
 import { getCurrentUser } from "@/server/http/currentUser";
+import { getPurchasedQuantities } from "@/server/services/orderService";
 import { listAvailableProducts } from "@/server/services/productService";
 import { BuyForm } from "./BuyForm";
 
@@ -11,6 +13,8 @@ export default async function HomePage() {
   const user = await getCurrentUser();
   const products = listAvailableProducts();
   const isCustomer = user?.role === "customer";
+  // For earlier feedback in the UI only; the order API enforces the limit itself.
+  const bought = isCustomer ? getPurchasedQuantities(user.id) : {};
 
   return (
     <>
@@ -40,7 +44,10 @@ export default async function HomePage() {
                 <td>{p.stock}</td>
                 {isCustomer && (
                   <td>
-                    <BuyForm productId={p.id} />
+                    <BuyForm
+                      product={p}
+                      remaining={Math.max(0, MAX_UNITS_PER_CUSTOMER - (bought[p.id] ?? 0))}
+                    />
                   </td>
                 )}
               </tr>

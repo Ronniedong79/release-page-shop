@@ -34,5 +34,22 @@ nav { display: flex; gap: 16px; align-items: center; }
 .inline { display: flex; flex-direction: row; flex-wrap: wrap; max-width: none; gap: 4px; align-items: center; margin-top: 4px; }
 .inline input { width: 80px; }
 
+.side-cart {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(340px, 100vw);
+  height: 100vh;
+  overflow-y: auto;
+  padding: 16px;
+  background: #fff;
+  border-left: 1px solid #ddd;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+}
+.side-cart-head { display: flex; justify-content: space-between; align-items: center; }
+.side-cart ul { list-style: none; padding: 0; }
+.side-cart li { padding: 8px 0; border-bottom: 1px solid #ddd; }
+.side-cart li.problem { background: #fdecee; }
+
 .error { color: #b00020; }
 .success { color: #1b7f3b; }

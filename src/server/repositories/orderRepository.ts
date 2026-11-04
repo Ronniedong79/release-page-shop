@@ -21,6 +21,17 @@ export function getPurchasedQuantity(db: Db, userId: number, productId: number):
   return row?.quantity ?? 0;
 }
 
+export function listPurchasedQuantities(
+  db: Db,
+  userId: number,
+): { productId: number; quantity: number }[] {
+  return db
+    .prepare(
+      "SELECT product_id AS productId, quantity FROM customer_product_purchases WHERE user_id = ?",
+    )
+    .all(userId) as { productId: number; quantity: number }[];
+}
+
 /** Add to the customer's running total. The table's CHECK (quantity <= 2) is the DB backstop. */
 export function addPurchasedQuantity(
   db: Db,
