@@ -63,6 +63,20 @@ describe("admin: products", () => {
     expect(listed.body.products.map((p: { id: number }) => p.id)).not.toContain(3);
   });
 
+  it("lets an admin find a sold-out product through the API and restock it", async () => {
+    await setStock("3", { stock: 0 });
+    const customer = await loginAs("alice");
+    const ids = async (token?: string) =>
+      (await call(productsRoute.GET, { token })).body.products.map((p: { id: number }) => p.id);
+
+    expect(await ids()).not.toContain(3); // anonymous: in stock only
+    expect(await ids(customer)).not.toContain(3); // customers: in stock only
+    expect(await ids(admin)).toContain(3); // admins see every product
+
+    expect((await setStock("3", { stock: 5 })).status).toBe(200);
+    expect(await ids(customer)).toContain(3); // back on sale
+  });
+
   it.each([
     ["a string price", { priceCents: "100" }],
     ["a negative price", { priceCents: -1 }],

@@ -65,7 +65,7 @@ curl -X PATCH localhost:3000/api/products/1/price -H "Authorization: Bearer <adm
 | `POST /api/auth/login` | anyone | `{ email, password }` → session token + httpOnly cookie |
 | `POST /api/auth/logout` | logged in | deletes the session |
 | `GET /api/auth/me` | logged in | current user |
-| `GET /api/products` | anyone | products in stock, with current prices |
+| `GET /api/products` | anyone | products in stock, with current prices. Admins get every product, including sold-out ones, so they can restock them |
 | `POST /api/orders` | customer | `{ items: [{ productId, quantity }] }` |
 | `GET /api/orders` | logged in | the caller's own orders |
 | `POST /api/products` | admin | `{ sku, name, priceCents, stock }` |
@@ -157,7 +157,7 @@ The whole order runs in one transaction. Every line is checked first (product ex
 **6. Quantities are whole numbers of 1 or more.**
 zod `z.number().int().min(1)`, with no type coercion, so `0`, `-1`, `1.5`, `"2"` and `null` are all rejected with a 400 that names the field. The database has `CHECK (quantity >= 1)` on `STRICT` tables as well.
 
-**Tests:** `npm test` runs 52 tests. [`tests/business-rules.test.ts`](tests/business-rules.test.ts) has one `describe` block per rule. Admin, auth and concurrency tests are in their own files. Each test gets a fresh in-memory database.
+**Tests:** `npm test` runs 53 tests. [`tests/business-rules.test.ts`](tests/business-rules.test.ts) has one `describe` block per rule. Admin, auth and concurrency tests are in their own files. Each test gets a fresh in-memory database.
 
 ---
 
@@ -169,6 +169,7 @@ zod `z.number().int().min(1)`, with no type coercion, so `0`, `-1`, `1.5`, `"2"`
 - **Rate limiting** on login and orders, plus lockout after repeated failed logins.
 - **Payments and order status** (pending → paid → cancelled), and returning units to the purchase limit on cancellation.
 - **Per-product limits and release windows** (`max_per_customer`, `on_sale_from`) instead of one global constant.
+- **Stricter id parsing.** Route ids go through `Number()`, so `/api/products/1e0/price` and `0x1` are accepted as product 1. That isn't a security issue (the result is still a valid id, and queries are parameterised), but I'd accept only `^\d+$` so each product has one URL.
 - **Store the product name on `order_items`** so order history keeps the name at the time of purchase.
 - **Admin views** of all orders and price history; an audit log for stock changes.
 - **Real UI** built from Figma designs, with Tailwind or the team's design system.

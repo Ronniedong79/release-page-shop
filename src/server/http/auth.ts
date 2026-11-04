@@ -16,10 +16,15 @@ export function getSessionToken(req: Request): string | null {
   return null;
 }
 
+/** The logged-in user, or null for anonymous requests (for endpoints open to everyone). */
+export function optionalUser(req: Request): AuthUser | null {
+  const token = getSessionToken(req);
+  return token ? getUserBySessionToken(token) : null;
+}
+
 /** 401 unless the request carries a valid, unexpired session. */
 export function requireUser(req: Request): AuthUser {
-  const token = getSessionToken(req);
-  const user = token ? getUserBySessionToken(token) : null;
+  const user = optionalUser(req);
   if (!user) throw unauthorized();
   return user;
 }
