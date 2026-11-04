@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { SESSION_COOKIE } from "@/server/http/auth";
-import { getUserBySessionToken } from "@/server/services/authService";
+import { getCurrentUser } from "@/server/http/currentUser";
+import { AdminNavLink } from "./AdminNavLink";
 import { LogoutButton } from "./LogoutButton";
 import "./globals.css";
 
@@ -14,16 +13,18 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  const user = token ? getUserBySessionToken(token) : null;
+  const user = await getCurrentUser();
 
   return (
     <html lang="en">
       <body>
         <header>
-          <Link href="/">
-            <strong>Release Shop</strong>
-          </Link>
+          <nav>
+            <Link href="/">
+              <strong>Release Shop</strong>
+            </Link>
+            {user?.role === "admin" && <AdminNavLink />}
+          </nav>
           {user ? (
             <span>
               {user.email} ({user.role}) <LogoutButton />
