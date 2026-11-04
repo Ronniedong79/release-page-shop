@@ -31,7 +31,7 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: 0.6; }
 
 nav { display: flex; gap: 16px; align-items: center; }
-.inline { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
+.inline { display: flex; flex-direction: row; flex-wrap: wrap; max-width: none; gap: 4px; align-items: center; margin-top: 4px; }
 .inline input { width: 80px; }
 
 .error { color: #b00020; }

@@ -61,6 +61,32 @@ export const createProductSchema = z.strictObject({
 export const updatePriceSchema = z.strictObject({ priceCents });
 export const updateStockSchema = z.strictObject({ stock });
 
+// Rule 6: quantities are whole numbers of 1 or more. No coercion, so "2" (a string) is rejected.
+const quantity = z
+  .number({ error: "quantity must be a number." })
+  .int("quantity must be a whole number.")
+  .min(1, "quantity must be at least 1.");
+
+// Rule 3: deliberately NOT strict. z.object drops unknown keys, so any price/total the
+// browser sends is silently discarded and never reaches the business logic.
+export const placeOrderSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.number({ error: "productId must be a number." }).int().min(1),
+        quantity,
+      }),
+      { error: "items must be a list." },
+    )
+    .min(1, "Order at least one item.")
+    .max(20, "Too many items in one order.")
+    .refine(
+      (items) => new Set(items.map((i) => i.productId)).size === items.length,
+      "Each product can appear only once per order; combine the quantities instead.",
+    ),
+});
+export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
+
 export const loginSchema = z.object({
   email: z.email({ error: "Enter a valid email address." }).max(254),
   password: z.string({ error: "Password is required." }).min(1, "Password is required.").max(200),
