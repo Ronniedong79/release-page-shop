@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiErrorMessage } from "@/lib/apiError";
 import { formatCents } from "@/lib/format";
+import { LimitHint } from "../BuyForm";
 import { useCart } from "./CartContext";
 
 type Status = { ok: boolean; text: string; productId?: number } | null;
@@ -73,6 +74,9 @@ export function SideCart() {
                   />
                   × {formatCents(l.priceCents)}
                   <button onClick={() => cart.remove(l.productId)}>Remove</button>
+                  {l.maxQuantity !== undefined && l.quantity >= l.maxQuantity && (
+                    <LimitHint remaining={l.maxQuantity} />
+                  )}
                 </div>
               </li>
             ))}

@@ -109,7 +109,19 @@ export function BuyForm({ product, remaining }: Props) {
           Add to cart
         </button>
       )}
+      {Number(quantity) >= remaining && <LimitHint remaining={remaining} />}
       {status && <span className={status.ok ? "success" : "error"}>{status.text}</span>}
     </form>
+  );
+}
+
+/** Shown when the quantity is at the cap, so the customer knows why it won't go higher. */
+export function LimitHint({ remaining }: { remaining: number }) {
+  const bought = MAX_UNITS_PER_CUSTOMER - remaining;
+  return (
+    <small className="hint">
+      Limit {MAX_UNITS_PER_CUSTOMER} per customer for each product
+      {bought > 0 && ` (you've already bought ${bought})`}.
+    </small>
   );
 }
